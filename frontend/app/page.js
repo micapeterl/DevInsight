@@ -18,7 +18,7 @@ export default function Home() {
 
     try {
       const res = await axios.post("http://localhost:8000/analyze", { code });
-      setResult(res.data.result);
+      setResult(res.data);
     } catch (err) {
       setError("Failed to analyze code. Make sure the backend is running.");
     }
@@ -55,7 +55,7 @@ export default function Home() {
         <button
           onClick={analyzeCode}
           disabled={loading}
-          className="w-full py-3 bg-blue-600 hover:bg-blue-500 disabled:bg-blue-900 
+          className="w-full py-3 bg-blue-600 hover:bg-blue-500 disabled:bg-blue-900
                      disabled:cursor-not-allowed rounded-lg font-semibold transition-colors"
         >
           {loading ? "Analyzing..." : "Analyze Code"}
@@ -70,11 +70,56 @@ export default function Home() {
 
         {/* Results */}
         {result && (
-          <div className="mt-6 p-6 bg-gray-900 border border-gray-700 rounded-lg">
-            <h2 className="text-lg font-semibold text-blue-400 mb-4">Analysis</h2>
-            <pre className="whitespace-pre-wrap text-gray-300 text-sm leading-relaxed">
-              {result}
-            </pre>
+          <div className="mt-6 space-y-4">
+
+            {/* Explanation */}
+            <div className="p-6 bg-gray-900 border border-gray-700 rounded-lg">
+              <h2 className="text-sm font-semibold text-blue-400 uppercase tracking-wide mb-3">
+                What it does
+              </h2>
+              <p className="text-gray-300 text-sm leading-relaxed">
+                {result.explanation}
+              </p>
+            </div>
+
+            {/* Bugs */}
+            <div className="p-6 bg-gray-900 border border-gray-700 rounded-lg">
+              <h2 className="text-sm font-semibold text-red-400 uppercase tracking-wide mb-3">
+                Bugs & Issues
+              </h2>
+              {result.bugs.length === 0 ? (
+                <p className="text-gray-500 text-sm">No bugs detected.</p>
+              ) : (
+                <ul className="space-y-2">
+                  {result.bugs.map((bug, i) => (
+                    <li key={i} className="flex gap-2 text-sm text-gray-300">
+                      <span className="text-red-400 mt-0.5">•</span>
+                      <span>{bug}</span>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+
+            {/* Improvements */}
+            <div className="p-6 bg-gray-900 border border-gray-700 rounded-lg">
+              <h2 className="text-sm font-semibold text-green-400 uppercase tracking-wide mb-3">
+                Improvements
+              </h2>
+              {result.improvements.length === 0 ? (
+                <p className="text-gray-500 text-sm">No improvements suggested.</p>
+              ) : (
+                <ul className="space-y-2">
+                  {result.improvements.map((imp, i) => (
+                    <li key={i} className="flex gap-2 text-sm text-gray-300">
+                      <span className="text-green-400 mt-0.5">•</span>
+                      <span>{imp}</span>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+
           </div>
         )}
 

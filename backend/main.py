@@ -4,6 +4,7 @@ from pydantic import BaseModel
 from anthropic import Anthropic
 from dotenv import load_dotenv
 import os
+import json
 
 load_dotenv()
 
@@ -29,14 +30,31 @@ async def analyze_code(request: CodeRequest):
         messages=[
             {
                 "role": "user",
-                "content": f"""You are a senior software engineer. Analyze the following code and provide:
-1. A plain English explanation of what it does
-2. Any bugs or issues you find
-3. Specific suggestions for improvement
+                "content": f"""You are a senior software engineer. Analyze the following code and respond with ONLY a JSON object, no markdown, no explanation outside the JSON.
+
+The JSON must follow this exact structure:
+{{
+  "explanation": "A plain English explanation of what the code does",
+  "bugs": ["bug or issue 1", "bug or issue 2"],
+  "improvements": ["improvement 1", "improvement 2"]
+}}
+
+If there are no bugs, return an empty array for bugs. Same for improvements.
 
 Code:
 {request.code}"""
             }
         ]
     )
-    return {"result": message.content[0].text}
+
+    raw = message.content[0].text.strip()
+
+    # Strip markdown code fences if Claude adds them anyway
+    if raw.startswith("```"):
+        raw = raw.split("```")[1]
+        if raw.startswith("json"):
+            raw = raw[4:]
+        raw = raw.strip()
+
+    parsed = json.loads(raw)
+    return parsed
