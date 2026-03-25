@@ -4,8 +4,22 @@ import { useState } from "react";
 import Editor from "@monaco-editor/react";
 import axios from "axios";
 
+const LANGUAGES = [
+  "javascript",
+  "typescript",
+  "python",
+  "java",
+  "csharp",
+  "cpp",
+  "go",
+  "rust",
+  "html",
+  "css",
+];
+
 export default function Home() {
   const [code, setCode] = useState("// Paste your code here");
+  const [language, setLanguage] = useState("javascript");
   const [result, setResult] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -17,7 +31,10 @@ export default function Home() {
     setResult(null);
 
     try {
-      const res = await axios.post("http://localhost:8000/analyze", { code });
+      const res = await axios.post("http://localhost:8000/analyze", {
+        code,
+        language,
+      });
       setResult(res.data);
     } catch (err) {
       setError("Failed to analyze code. Make sure the backend is running.");
@@ -35,11 +52,28 @@ export default function Home() {
           <p className="text-gray-400 mt-1">AI-powered code analysis</p>
         </div>
 
+        {/* Language Selector */}
+        <div className="mb-3 flex items-center gap-3">
+          <label className="text-sm text-gray-400">Language:</label>
+          <select
+            value={language}
+            onChange={(e) => setLanguage(e.target.value)}
+            className="bg-gray-800 border border-gray-700 text-white text-sm 
+                       rounded-lg px-3 py-1.5 focus:outline-none focus:border-blue-500"
+          >
+            {LANGUAGES.map((lang) => (
+              <option key={lang} value={lang}>
+                {lang.charAt(0).toUpperCase() + lang.slice(1)}
+              </option>
+            ))}
+          </select>
+        </div>
+
         {/* Editor */}
         <div className="rounded-lg overflow-hidden border border-gray-700 mb-4">
           <Editor
             height="350px"
-            defaultLanguage="javascript"
+            language={language}
             theme="vs-dark"
             value={code}
             onChange={(value) => setCode(value || "")}

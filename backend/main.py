@@ -21,6 +21,7 @@ client = Anthropic(api_key=os.getenv("ANTHROPIC_API_KEY"))
 
 class CodeRequest(BaseModel):
     code: str
+    language: str = "unknown"
 
 @app.post("/analyze")
 async def analyze_code(request: CodeRequest):
@@ -30,7 +31,7 @@ async def analyze_code(request: CodeRequest):
         messages=[
             {
                 "role": "user",
-                "content": f"""You are a senior software engineer. Analyze the following code and respond with ONLY a JSON object, no markdown, no explanation outside the JSON.
+                "content": f"""You are a senior software engineer. Analyze the following {request.language} code and respond with ONLY a JSON object, no markdown, no explanation outside the JSON.
 
 The JSON must follow this exact structure:
 {{
@@ -49,7 +50,6 @@ Code:
 
     raw = message.content[0].text.strip()
 
-    # Strip markdown code fences if Claude adds them anyway
     if raw.startswith("```"):
         raw = raw.split("```")[1]
         if raw.startswith("json"):
