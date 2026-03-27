@@ -29,6 +29,8 @@ export default function Home() {
   const [copied, setCopied] = useState(false);
   const [history, setHistory] = useState([]);
   const [historyOpen, setHistoryOpen] = useState(true);
+  const [uploadedFileName, setUploadedFileName] = useState(null);
+  const [activeHistoryId, setActiveHistoryId] = useState(null);
 
   // Load history from localStorage on mount
   useEffect(() => {
@@ -45,9 +47,21 @@ export default function Home() {
       code,
       result,
     };
-    const updated = [entry, ...history].slice(0, 20); // keep last 20
+    const updated = [entry, ...history].slice(0, 20);
     setHistory(updated);
+    setActiveHistoryId(entry.id);
     localStorage.setItem("devinsight_history", JSON.stringify(updated));
+  };
+
+  const resetToDefault = () => {
+  setCode("// Paste your code here");
+  setLanguage("javascript");
+  setResult(null);
+  setFixedCode(null);
+  setShowDiff(false);
+  setError(null);
+  setActiveHistoryId(null);
+  setUploadedFileName(null);
   };
 
   const loadFromHistory = (entry) => {
@@ -57,11 +71,28 @@ export default function Home() {
     setFixedCode(entry.result?.fixedCode || null);
     setShowDiff(false);
     setError(null);
+    setActiveHistoryId(entry.id);
+  };
+
+  const deleteHistoryEntry = (id, e) => {
+    e.stopPropagation();
+    const updated = history.filter((entry) => entry.id !== id);
+    setHistory(updated);
+    localStorage.setItem("devinsight_history", JSON.stringify(updated));
+
+    if (id === activeHistoryId) {
+      if (updated.length > 0) {
+        loadFromHistory(updated[0]); // load most recent remaining entry
+      } else {
+        resetToDefault();
+      }
+    }
   };
 
   const clearHistory = () => {
     setHistory([]);
     localStorage.removeItem("devinsight_history");
+    resetToDefault();
   };
 
   const analyzeCode = async () => {
@@ -165,29 +196,43 @@ export default function Home() {
                 ) : (
                   <>
                     {history.map((entry) => (
-                      <button
-                        key={entry.id}
-                        onClick={() => loadFromHistory(entry)}
-                        className="w-full text-left px-2 py-2 rounded-lg hover:bg-gray-800 
-                                  transition-colors group"
-                      >
-                        <div className="flex items-center justify-between mb-0.5">
-                          <span className="text-xs font-medium text-blue-400 capitalize">
-                            {entry.language}
-                          </span>
-                          <div className="flex items-center gap-1.5">
-                            {entry.result?.fixedCode && (
-                              <span className="text-xs text-green-500" title="Fix cached">✓</span>
-                            )}
-                            <span className="text-xs text-gray-600">
-                              {formatTime(entry.timestamp)}
+                      <div key={entry.id} className="relative group">
+                        <button
+                          onClick={() => loadFromHistory(entry)}
+                          className={`w-full text-left px-2 py-2 rounded-lg transition-colors pr-7
+                            ${activeHistoryId === entry.id
+                              ? "bg-gray-800 border border-gray-700"
+                              : "hover:bg-gray-800"
+                            }`}
+                        >
+                          <div className="flex items-center justify-between mb-0.5">
+                            <span className="text-xs font-medium text-blue-400 capitalize">
+                              {entry.language}
                             </span>
+                            <div className="flex items-center gap-1.5">
+                              {entry.result?.fixedCode && (
+                                <span className="text-xs text-green-500" title="Fix cached">✓</span>
+                              )}
+                              <span className="text-xs text-gray-600">
+                                {formatTime(entry.timestamp)}
+                              </span>
+                            </div>
                           </div>
-                        </div>
-                        <p className="text-xs text-gray-400 truncate">
-                          {entry.preview}
-                        </p>
-                      </button>
+                          <p className="text-xs text-gray-400 truncate">
+                            {entry.preview}
+                          </p>
+                        </button>
+
+                        {/* Delete button — appears on hover */}
+                        <button
+                          onClick={(e) => deleteHistoryEntry(entry.id, e)}
+                          className="absolute top-2 right-1 opacity-0 group-hover:opacity-100
+                                    text-gray-600 hover:text-red-400 transition-all text-xs px-1"
+                          title="Delete entry"
+                        >
+                          ✕
+                        </button>
+                      </div>
                     ))}
 
                     {/* Clear History */}
@@ -213,21 +258,71 @@ export default function Home() {
 
           {!showDiff ? (
             <>
-              {/* Language Selector */}
-              <div className="mb-3 flex items-center gap-3">
-                <label className="text-sm text-gray-400">Language:</label>
-                <select
-                  value={language}
-                  onChange={(e) => setLanguage(e.target.value)}
-                  className="bg-gray-800 border border-gray-700 text-white text-sm
-                             rounded-lg px-3 py-1.5 focus:outline-none focus:border-blue-500"
-                >
-                  {LANGUAGES.map((lang) => (
-                    <option key={lang} value={lang}>
-                      {lang.charAt(0).toUpperCase() + lang.slice(1)}
-                    </option>
-                  ))}
-                </select>
+              {/* Language Selector + File Upload */}
+              <div className="mb-3 flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <label className="text-sm text-gray-400">Language:</label>
+                  <select
+                    value={language}
+                    onChange={(e) => setLanguage(e.target.value)}
+                    className="bg-gray-800 border border-gray-700 text-white text-sm
+                              rounded-lg px-3 py-1.5 focus:outline-none focus:border-blue-500"
+                  >
+                    {LANGUAGES.map((lang) => (
+                      <option key={lang} value={lang}>
+                        {lang.charAt(0).toUpperCase() + lang.slice(1)}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                {/* File Upload */}
+                <label className="cursor-pointer px-4 py-1.5 bg-gray-800 hover:bg-gray-700 
+                                  border border-gray-700 rounded-lg text-sm text-gray-300 
+                                  hover:text-white transition-colors flex items-center gap-2">
+                  <span>⬆</span>
+                  <span>Upload File</span>
+                  <input
+                    type="file"
+                    accept=".js,.ts,.py,.java,.cs,.cpp,.go,.rs,.html,.css"
+                    className="hidden"
+                    onChange={(e) => {
+                      const file = e.target.files[0];
+                      setUploadedFileName(file.name);
+                      if (!file) return;
+
+                      // Auto-detect language from extension
+                      const ext = file.name.split(".").pop().toLowerCase();
+                      const extMap = {
+                        js: "javascript",
+                        ts: "typescript",
+                        py: "python",
+                        java: "java",
+                        cs: "csharp",
+                        cpp: "cpp",
+                        go: "go",
+                        rs: "rust",
+                        html: "html",
+                        css: "css",
+                      };
+                      if (extMap[ext]) setLanguage(extMap[ext]);
+
+                      // Read file contents into editor
+                      const reader = new FileReader();
+                      reader.onload = (ev) => setCode(ev.target.result);
+                      reader.readAsText(file);
+
+                      // Reset analysis state
+                      setResult(null);
+                      setFixedCode(null);
+                      setShowDiff(false);
+                      setError(null);
+
+                      // Reset input so same file can be re-uploaded
+                      e.target.value = "";
+                    }}
+                  />
+                </label>
               </div>
 
               {/* Editor */}
@@ -345,6 +440,31 @@ export default function Home() {
                                font-medium transition-colors"
                   >
                     {copied ? "Copied!" : "Copy Fixed Code"}
+                  </button>
+                  <button
+                    onClick={() => {
+                      const extMap = {
+                        javascript: "js", typescript: "ts", python: "py",
+                        java: "java", csharp: "cs", cpp: "cpp",
+                        go: "go", rust: "rs", html: "html", css: "css",
+                      };
+                      const ext = extMap[language] || "txt";
+                      const filename = uploadedFileName
+                        ? uploadedFileName.replace(/\.[^.]+$/, `_fixed.${ext}`)
+                        : `fixed_code.${ext}`;
+
+                      const blob = new Blob([fixedCode], { type: "text/plain" });
+                      const url = URL.createObjectURL(blob);
+                      const a = document.createElement("a");
+                      a.href = url;
+                      a.download = filename;
+                      a.click();
+                      URL.revokeObjectURL(url);
+                    }}
+                    className="px-4 py-2 bg-gray-700 hover:bg-gray-600 rounded-lg text-sm
+                              font-medium transition-colors"
+                  >
+                    ⬇ Download
                   </button>
                   <button
                     onClick={() => { setShowDiff(false); setFixedCode(null); }}

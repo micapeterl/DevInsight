@@ -75,3 +75,5 @@ DevInsight/
     └── app/
         └── page.js
 ```
+
+![Example page view of suggested edits](image.png)
