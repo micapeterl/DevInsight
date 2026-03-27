@@ -19,6 +19,8 @@ so you can see exactly what changed.
 - **Language Support** — Syntax highlighting for JavaScript, TypeScript, Python, Java, C#, C++, Go, Rust, HTML, and CSS
 - **Fix My Code** — Generates a corrected version with a side-by-side diff view
 - **Copy to Clipboard** — Copy the fixed code with one click
+- **File Upload/Download** — Upload files directly and one-click download of fixed code
+- **Analysis History** — Quickly switch between different requests and delete irrelevent ones
 
 ## Tech Stack
 
@@ -29,6 +31,18 @@ so you can see exactly what changed.
 | AI | Anthropic Claude API |
 
 ## Getting Started
+
+Run the startup script from the project root:
+```
+start.bat
+```
+
+Or manually:
+
+**Backend:** `cd backend` → `venv\Scripts\activate` → `uvicorn main:app --reload`  
+**Frontend:** `cd frontend` → `npm run dev`
+
+Then open `http://localhost:3000`
 
 ### Prerequisites
 - Python 3.10+
