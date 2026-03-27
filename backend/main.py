@@ -58,3 +58,34 @@ Code:
 
     parsed = json.loads(raw)
     return parsed
+
+class FixRequest(BaseModel):
+    code: str
+    language: str = "unknown"
+
+@app.post("/fix")
+async def fix_code(request: FixRequest):
+    message = client.messages.create(
+        model="claude-haiku-4-5-20251001",
+        max_tokens=2048,
+        messages=[
+            {
+                "role": "user",
+                "content": f"""You are a senior software engineer. Fix the following {request.language} code.
+
+Return ONLY the corrected code with no explanation, no markdown, no code fences, just the raw fixed code exactly as it should be written.
+
+Code:
+{request.code}"""
+            }
+        ]
+    )
+
+    raw = message.content[0].text.strip()
+
+    # Strip code fences if Claude adds them anyway
+    if raw.startswith("```"):
+        lines = raw.split("\n")
+        raw = "\n".join(lines[1:-1])
+
+    return {"fixed": raw}
